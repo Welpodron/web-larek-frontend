@@ -173,8 +173,8 @@ export type TProductPreviewRenderArgs = {
 
 // Корзина
 
-export type TBasketRenderArgs<ItemsRenderArgs extends object> = {
-	items: TViewNested<ItemsRenderArgs>[];
+export type TBasketRenderArgs<T extends object> = {
+	items: TViewNested<T>[];
 	price: string;
 	isDisabled: boolean;
 };

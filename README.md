@@ -47,38 +47,199 @@ yarn build
 
 Приложение основано на упрощенной версии шаблона проектирования MVP. В данном контексте все приложение содержит общий "Presenter", который координирует работу всех View и Model через событийно-ориентированный подход, используя механизм сообщений, которые возникают в результате определенных событий внутри отображений и моделей 
 
+Для описания товара используется интерфейс `IProduct`:
+
+```ts
+interface IProduct {
+	id: string;
+	description: string;
+	image: string;
+	title: string;
+	category: string;
+	price: number | null;
+}
+```
+
+Для описания возможных способов оплаты заказа используется тип `TOrderPayment`:
+
+```ts
+type TOrderPayment = 'cash' | 'card';
+```
+
+Для описания заказа используется интерфейс `IOrder`:
+
+```ts
+interface IOrder {
+	items: IProduct[];
+	payment: TOrderPayment;
+	address: string;
+	email: string;
+	phone: string;
+}
+```
+
+При оформлении заказа, формируется специальный объект для работы с API типа `TOrderInvoice`:
+
+```ts
+type TOrderInvoice = Omit<IOrder, 'items'> & {
+	items: string[];
+	total: number;
+};
+```
+
+Для отслеживания текущего этапа заказа используется тип `TOrderStep`:
+
+```ts
+type TOrderStep = 'shipment' | 'contacts';
+```
+
 ## Базовые и связующие блоки 
 
-### Базовый класс API
+### Базовый класс `API`
 
 Реализует базовый набор сетевых операций с серверным API (получение и отправка данных) 
 
-### Базовый класс EventEmitter
+В качестве набора HTTP методов использует тип `TApiPostMethods`:
+
+```ts
+type TApiPostMethods = 'POST' | 'PUT' | 'DELETE'
+```
+
+### Базовый класс `EventEmitter`
 
 Обеспечивает работу событий. Его функции: возможность установить и снять слушателей событий, вызвать слушателей при возникновении события
 
-### Абстрактный класс Model
+Реализует интерфейс `IEvents`, использует типы `TEmitterEvent`, `TSubscriber`, `TEventName`:
 
-Специальный абстрактный класс, определяющий конструктор всех моделей приложения, а также метод для сообщения об изменении внутренних данных используя EventEmitter
+```ts
+type TEventName = string | RegExp;
 
-### Абстрактный класс View 
+type TSubscriber = Function;
 
-Специальный абстрактный класс, определяющий конструктор всех отображений приложения, а также метод для рендера привязанного к отображению DOM элемента с определенным набором параметров, также содержит список привязанных к отображению событий и EventEmitter для сообщений о внутренних событиях
+type TEmitterEvent = {
+	eventName: string;
+	data: unknown;
+};
+
+interface IEvents {
+	on<T extends object>(event: TEventName, callback: (data: T) => void): void;
+	emit<T extends object>(event: string, data?: T): void;
+	trigger<T extends object>(
+		event: string,
+		context?: Partial<T>
+	): (data: T) => void;
+}
+```
+
+### Абстрактный класс `Model`
+
+Специальный абстрактный класс, определяющий конструктор всех моделей приложения (который принимает часть данных дженерика, привязанного к интерфейсу модели, а также инстанс брокера событий, который реализует `IEvents`), а также метод `emitChanges` для сообщения об изменении внутренних данных используя `EventEmitter`
+
+### Абстрактный класс `View` 
+
+Специальный абстрактный класс, определяющий конструктор всех отображений приложения, а также метод для рендера `render` привязанного к отображению DOM элемента с определенным набором параметров `args`, также содержит список привязанных к отображению событий и брокер событий для сообщений о внутренних событиях
+
+Конструктор принимает в качестве аргумента специальный тип `TViewConstructionArgs`, содержащий DOM элемент, привязанный к View, брокер и список доступных событий:
+
+```ts
+type TViewConstructionArgs<
+	Element extends HTMLElement = HTMLElement,
+	EventHandlers extends object = object
+> = {
+	element: Element;
+	eventEmitter: IEvents;
+	eventHandlers?: EventHandlers;
+};
+```
+
+Так как View внутри себя может содержать другие View, приложен специальный тип `TViewNested`, который описывает способ хранения дочерних View:
+
+```ts
+type TViewNested<RenderArgs extends object = object> = {
+	view: IView | HTMLElement;
+	renderArgs?: RenderArgs;
+};
+```
 
 ## Модели данных (Model)
 
-### Класс AppState
+### Класс `AppState`
 
 Модель данных приложения. По сути является неким глобальным хранилищем данных с набором методов для контролирования 
 общего процесса работы приложения (добавление товаров в корзину, детальный просмотр товара, заполнение полей заказа и тд). В данном случае выполняет роль распределителя между товарами, корзиной и заказом
+
+Содержит поля интерфейса `IAppState`:
+
+```ts
+interface IAppState {
+	preview: IProduct;
+	basket: Set<IProduct>;
+	products: IProduct[];
+	order: IOrder;
+}
+```
+
+Имеет базовый набор методов для управления приложением:
+
+```ts
+// Установка этапа оформления заказа
+setStep(value: TOrderStep) {}
+
+// Установка поля заказа
+setOrderField(field: keyof IOrder, value: unknown) {}
+
+// Проверка валидности текущего заказа
+getOrderIsValid() {}
+
+// Получение ошибок текущего заказа
+getOrderErrors() {}
+
+// Получение полей заказа в виде для взаимодействия с API
+getOrderInvoice() {}
+
+// Инициализация нового заказа
+initOrder() {}
+
+// Сброс всех полей заказа
+resetOrder() {}
+
+// Установка товаров каталога
+setProductsItems(value: IProduct[]) {}
+
+// Установка позиций корзины
+setBasketItems(value: IProduct[]) {}
+
+// Проверка на наличие товара в корзине
+getBasketIsContains(id: string) {}
+
+// Добавление товара в корзину
+addBasketItem(value: IProduct) {}
+
+// Удаление товара из корзины
+removeBasketItem(id: string) {}
+
+// Сброс текущего состояния корзины
+resetBasket() {}
+
+// Инициализация корзины
+initBasket() {}
+
+// Получение цены позиций в корзине
+getBasketPrice() {}
+
+// Установка текущего просматриваемого элемента
+setPreview(value: IProduct) {}
+```
 
 ## Специальные компоненты 
 
 Данный набор компонентов необходим для работы с API и другими службами
 
-### Класс ShopAPI
+### Класс `ShopAPI`
 
 Специальный компонент для взаимодействия с API магазина (получение списка товара(ов), оформление заказа)
+
+Наследуется от базового класса `API`, при оформлении заказа использует `TOrderInvoice`
 
 ## Отображения (View)
 
@@ -86,62 +247,229 @@ yarn build
 
 Данный набор компонентов необходим для работы со страницей
 
-#### Класс Page 
+#### Класс `Page` 
 
 Отображение самой страницы. Контролирует возможность скроллинга 
 
-#### Класс Header
+Наследуется от `View`. При рендеринге использует поля типа `TPageRenderArgs`:
+
+```ts
+type TPageRenderArgs = {
+	isLocked: boolean;
+};
+```
+
+#### Класс `Header`
 
 Отображение хедера страницы. Содержит отображение счетчика корзины, а также предоставляет возможность по клику на иконку корзины совершать определенные действия
 
-#### Класс Modal
+Наследуется от `View`. При рендеринге использует поля типа `THeaderRenderArgs`:
+
+```ts
+type THeaderRenderArgs = {
+	counter: number;
+};
+```
+
+Доступный список событий описан типом `THeaderEventHandlers`:
+
+```ts
+type THeaderEventHandlers = {
+	onClick?: (args: { _event: MouseEvent }) => void;
+};
+```
+
+#### Класс `Modal`
 
 Отображение модального окна. Предоставляет методы для открытия и закрытия модального окна страницы, а также контролирует собственное содержимое
 
-#### Класс Form 
+Наследуется от `View`. При рендеринге использует поля типа `TModalRenderArgs`:
+
+```ts
+type TModalRenderArgs<T extends object> = {
+	content: TViewNested<T>;
+};
+```
+
+#### Класс `Form` 
 
 Отображение формы. Контролирует отображение ошибок валидации формы, предоставляет возможности по прослушиванию событий отправки формы, а также внесения изменений в поля формы 
+
+Наследуется от `View`. При рендеринге использует поля типа `TFormRenderArgs`:
+
+```ts
+type TFormRenderArgs = {
+	isDisabled: boolean;
+	errors: string[];
+};
+```
+
+Доступный список событий описан типом `TFormEventHandlers`:
+
+```ts
+type TFormEventHandlers = {
+	onSubmit?: (args: { _event: SubmitEvent }) => void;
+	onInput?: (args: {
+		_event: InputEvent;
+		field: string;
+		value: unknown;
+	}) => void;
+};
+```
 
 ### Компоненты корзины
 
 Данный набор компонентов необходим для работы с пользовательской корзиной 
 
-#### Класс Basket
+#### Класс `Basket`
 
 Отображение корзины. Содержит набор позиций корзины, общую сумму позиций, а также предоставляет возможность совершения действий по клику на кнопку оформления
 
-#### Класс BasketItem
+Наследуется от `View`. При рендеринге использует поля типа `TBasketRenderArgs`:
+
+```ts
+type TBasketRenderArgs<T extends object> = {
+	items: TViewNested<T>[];
+	price: string;
+	isDisabled: boolean;
+};
+```
+
+Доступный список событий описан типом `TBasketEventHandlers`:
+
+```ts
+type TBasketEventHandlers = {
+	onClick?: (args: { _event: MouseEvent }) => void;
+};
+```
+
+#### Класс `BasketItem`
 
 Отображение позиции в корзине. Отображает характеристики товара позиции, предоставляет возможность совершать действия по клику на иконку удаления позиции
+
+Наследуется от `View`. При рендеринге использует поля типа `TBasketItemRenderArgs`:
+
+```ts
+type TBasketItemRenderArgs = {
+	index: number;
+	title: string;
+	price: string;
+};
+```
+
+Доступный список событий описан типом `TBasketItemEventHandlers`:
+
+```ts
+type TBasketItemEventHandlers = {
+	onClick?: (args: { _event: MouseEvent }) => void;
+};
+```
 
 ### Компоненты заказа 
 
 Данный набор компонентов необходим для работы с пользовательским заказов 
 
-#### Класс OrderShipment
+#### Класс `OrderShipment`
 
 Отображение формы заказа с полями способ оплаты, адрес доставки. Наследует возможности компонента формы, управляет состоянием полей способа оплаты и адреса доставки, предоставляет возможность при отправке формы совершать определенные действия
 
-#### Класс OrderContacts
+Наследуется от `Form`. При рендеринге использует поля типа `TOrderShipmentRenderArgs`:
+
+```ts
+type TOrderShipmentRenderArgs = {
+	payment: string;
+	address: string;
+} & TFormRenderArgs;
+```
+
+Использует список событий типа `TFormEventHandlers`
+
+#### Класс `OrderContacts`
 
 Отображение формы заказа с полями email, телефон. Наследует возможности компонента формы, управляет состоянием полей email и адреса телефона, предоставляет возможность при отправке формы совершать определенные действия
 
-#### Класс OrderSuccess
+Наследуется от `Form`. При рендеринге использует поля типа `TOrderContactsRenderArgs`:
 
-Отображение успешности оформления заказа. Содержит информацию о потраченных ресурсах при успешном оформлении заказа.
+```ts
+type TOrderContactsRenderArgs = {
+	email: string;
+	phone: string;
+} & TFormRenderArgs
+```
+
+Использует список событий типа `TFormEventHandlers`
+
+#### Класс `OrderSuccess`
+
+Отображение успешности оформления заказа. Содержит информацию о потраченных ресурсах при успешном оформлении заказа
+
+Наследуется от `View`. При рендеринге использует поля типа `TOrderSuccessRenderArgs`:
+
+```ts
+type TOrderSuccessRenderArgs = {
+	description: string;
+};
+```
+
+Доступный список событий описан типом `TOrderSuccessEventHandlers`:
+
+```ts
+type TOrderSuccessEventHandlers = {
+	onClick?: (args: { _event: MouseEvent }) => void;
+};
+```
 
 ### Компоненты товаров
 
 Данный набор компонентов необходим для работы с отображением товаров магазина
 
-#### Класс Products
+#### Класс `Products`
 
 Отображение списка товаров. Содержит набор текущих товаров магазина
 
-#### Класс Product
+Наследуется от `View`. При рендеринге использует поля типа `TProductsRenderArgs`:
+
+```ts
+type TProductsRenderArgs<T extends object> = {
+	items: TViewNested<T>[];
+};
+```
+
+#### Класс `Product`
 
 Отображение товара. Содержит частичные характеристики товара, а также предоставляет возможность по клику на товар совершать определенные действия
 
-#### Класс ProductPreview
+Наследуется от `View`. При рендеринге по умолчанию использует поля типа `TProductRenderArgs`:
+
+```ts
+type TProductRenderArgs = Pick<
+	IProduct,
+	'image' | 'title' | 'category'
+> & {
+	price: string;
+}
+```
+
+Доступный список событий по умолчанию описан типом `TProductEventHandlers`:
+
+```ts
+type TProductEventHandlers = {
+	onClick?: (args: { _event: MouseEvent }) => void;
+}
+```
+
+#### Класс `ProductPreview`
 
 Детальное отображение товара. Содержит полные характеристики товара, а также предоставляет возможность по клику на кнопку совершать определенные действия
+
+Наследуется от `Product`. При рендеринге использует поля типа `TProductPreviewRenderArgs`:
+
+```ts
+type TProductPreviewRenderArgs = {
+	description: string;
+	buttonText: string;
+	isDisabled: boolean;
+} & TProductRenderArgs
+```
+
+Использует список событий типа `TProductEventHandlers`
