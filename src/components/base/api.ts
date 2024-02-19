@@ -1,9 +1,4 @@
-export type ApiListResponse<Type> = {
-	total: number;
-	items: Type[];
-};
-
-export type ApiPostMethods = 'POST' | 'PUT' | 'DELETE';
+import { TApiPostMethods } from '../../types';
 
 export class API {
 	readonly baseUrl: string;
@@ -34,7 +29,7 @@ export class API {
 		}).then(this.handleResponse);
 	}
 
-	post(uri: string, data: object, method: ApiPostMethods = 'POST') {
+	post(uri: string, data: object, method: TApiPostMethods = 'POST') {
 		return fetch(this.baseUrl + uri, {
 			...this.options,
 			method,

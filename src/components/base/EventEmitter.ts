@@ -1,39 +1,18 @@
-// Хорошая практика даже простые типы выносить в алиасы
-// Зато когда захотите поменять это достаточно сделать в одном месте
-type EventName = string | RegExp;
-type Subscriber = Function;
-type EmitterEvent = {
-	eventName: string;
-	data: unknown;
-};
+import { IEvents, TEmitterEvent, TEventName, TSubscriber } from '../../types';
 
-export interface IEvents {
-	on<T extends object>(event: EventName, callback: (data: T) => void): void;
-	emit<T extends object>(event: string, data?: T): void;
-	trigger<T extends object>(
-		event: string,
-		context?: Partial<T>
-	): (data: T) => void;
-}
-
-/**
- * Брокер событий, классическая реализация
- * В расширенных вариантах есть возможность подписаться на все события
- * или слушать события по шаблону например
- */
 export class EventEmitter implements IEvents {
-	_events: Map<EventName, Set<Subscriber>>;
+	_events: Map<TEventName, Set<TSubscriber>>;
 
 	constructor() {
-		this._events = new Map<EventName, Set<Subscriber>>();
+		this._events = new Map<TEventName, Set<TSubscriber>>();
 	}
 
 	/**
 	 * Установить обработчик на событие
 	 */
-	on<T extends object>(eventName: EventName, callback: (event: T) => void) {
+	on<T extends object>(eventName: TEventName, callback: (event: T) => void) {
 		if (!this._events.has(eventName)) {
-			this._events.set(eventName, new Set<Subscriber>());
+			this._events.set(eventName, new Set<TSubscriber>());
 		}
 		this._events.get(eventName)?.add(callback);
 	}
@@ -41,7 +20,7 @@ export class EventEmitter implements IEvents {
 	/**
 	 * Снять обработчик с события
 	 */
-	off(eventName: EventName, callback: Subscriber) {
+	off(eventName: TEventName, callback: TSubscriber) {
 		if (this._events.has(eventName)) {
 			this._events.get(eventName)!.delete(callback);
 			if (this._events.get(eventName)?.size === 0) {
@@ -67,7 +46,7 @@ export class EventEmitter implements IEvents {
 	/**
 	 * Слушать все события
 	 */
-	onAll(callback: (event: EmitterEvent) => void) {
+	onAll(callback: (event: TEmitterEvent) => void) {
 		this.on(new RegExp(/(.*?)/), callback);
 	}
 
@@ -75,7 +54,7 @@ export class EventEmitter implements IEvents {
 	 * Сбросить все обработчики
 	 */
 	offAll() {
-		this._events = new Map<string, Set<Subscriber>>();
+		this._events = new Map<string, Set<TSubscriber>>();
 	}
 
 	/**
