@@ -1,6 +1,24 @@
-import { IEvents, IView, TViewConstructionArgs } from '../../types';
+import { IEvents } from './EventEmitter';
 
 import { isPlainObject } from '../../utils/utils';
+
+interface IView {
+	render(args?: object): unknown;
+}
+
+type TViewConstructionArgs<
+	Element extends HTMLElement = HTMLElement,
+	EventHandlers extends object = object
+> = {
+	element: Element;
+	eventEmitter: IEvents;
+	eventHandlers?: EventHandlers;
+};
+
+type TViewNested<RenderArgs extends object = object> = {
+	view: IView | HTMLElement;
+	renderArgs?: RenderArgs;
+};
 
 abstract class View<
 	Element extends HTMLElement = HTMLElement,
@@ -34,4 +52,4 @@ abstract class View<
 	}
 }
 
-export { View };
+export { View, IView, TViewConstructionArgs, TViewNested };

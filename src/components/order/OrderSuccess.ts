@@ -1,10 +1,12 @@
-import {
-	TOrderSuccessRenderArgs,
-	TOrderSuccessEventHandlers,
-	TViewConstructionArgs,
-} from '../../types';
+import { TViewConstructionArgs, View } from '../base/View';
 
-import { View } from '../base/View';
+type TOrderSuccessRenderArgs = {
+	description: string;
+};
+
+type TOrderSuccessEventHandlers = {
+	onClick?: (args: { _event: MouseEvent }) => void;
+};
 
 class OrderSuccess extends View<
 	HTMLElement,
@@ -18,11 +20,34 @@ class OrderSuccess extends View<
 		args: TViewConstructionArgs<HTMLElement, TOrderSuccessEventHandlers>
 	) {
 		super(args);
+
+		this._descriptionElement = this._element.querySelector(
+			'.order-success__description'
+		);
+
+		this._buttonElement = this._element.querySelector('.order-success__close');
+
+		if (this._eventHandlers.onClick instanceof Function) {
+			this._buttonElement.addEventListener(
+				'click',
+				this._handleClick.bind(this)
+			);
+		}
 	}
 
-	protected _handleClick(event: MouseEvent) {}
+	protected _handleClick(event: MouseEvent) {
+		this._eventHandlers.onClick({
+			_event: event,
+		});
+	}
 
-	set description(value: string) {}
+	set description(value: string) {
+		this._descriptionElement.textContent = String(value);
+	}
 }
 
-export { OrderSuccess as OrderSuccessView };
+export {
+	OrderSuccess as OrderSuccessView,
+	TOrderSuccessRenderArgs,
+	TOrderSuccessEventHandlers,
+};

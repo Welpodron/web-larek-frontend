@@ -1,6 +1,11 @@
-import { TApiPostMethods } from '../../types';
+type TApiPostMethods = 'POST' | 'PUT' | 'DELETE';
 
-export class API {
+type TApiListResponse<T> = {
+	total: number;
+	items: T[];
+};
+
+class API {
 	readonly baseUrl: string;
 	protected options: RequestInit;
 
@@ -37,3 +42,5 @@ export class API {
 		}).then(this.handleResponse);
 	}
 }
+
+export { API, TApiPostMethods, TApiListResponse };

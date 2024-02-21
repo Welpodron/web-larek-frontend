@@ -1,9 +1,17 @@
-import { TProductsRenderArgs, TViewNested } from '../../types';
+import { TViewNested, View } from '../base/View';
 
-import { View } from '../base/View';
+type TProductsRenderArgs<T extends object> = {
+	items: TViewNested<T>[];
+};
 
 class Products extends View {
-	set items(value: TViewNested[]) {}
+	set items(value: TViewNested[]) {
+		this._element.replaceChildren(
+			...value.map(({ view, renderArgs }) =>
+				view instanceof View ? view.render(renderArgs) : view
+			)
+		);
+	}
 
 	render<RenderArgs extends object = object>(
 		args: TProductsRenderArgs<RenderArgs>
@@ -14,4 +22,4 @@ class Products extends View {
 	}
 }
 
-export { Products as ProductsView };
+export { Products as ProductsView, TProductsRenderArgs };

@@ -1,4 +1,4 @@
-import { IEvents } from '../../types';
+import { IEvents } from '../../components/base/EventEmitter';
 
 export abstract class Model<T> {
 	constructor(data: Partial<T>, protected eventEmitter: IEvents) {

@@ -1,12 +1,12 @@
-import {
-	IProduct,
-	TOrderInvoice,
-	IOrderResult,
-	IShopAPI,
-	TApiListResponse,
-} from '../../types';
+import { IProduct, TOrderInvoice, IOrderResult } from '../../types';
 
-import { API } from '../base/API';
+import { API, TApiListResponse } from '../base/API';
+
+interface IShopAPI {
+	getProducts: () => Promise<IProduct[]>;
+	getProduct: (id: string) => Promise<IProduct>;
+	createOrder: (invoice: TOrderInvoice) => Promise<IOrderResult>;
+}
 
 class ShopAPI extends API implements IShopAPI {
 	readonly cdn: string;
@@ -37,4 +37,4 @@ class ShopAPI extends API implements IShopAPI {
 	}
 }
 
-export { IShopAPI, ShopAPI };
+export { ShopAPI, IShopAPI };

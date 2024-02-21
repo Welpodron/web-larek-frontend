@@ -1,11 +1,14 @@
-import {
-	TBasketRenderArgs,
-	TBasketEventHandlers,
-	TViewConstructionArgs,
-	TViewNested,
-} from '../../types';
+import { TViewConstructionArgs, TViewNested, View } from '../base/View';
 
-import { View } from '../base/View';
+type TBasketRenderArgs<T extends object> = {
+	items: TViewNested<T>[];
+	price: string;
+	isDisabled: boolean;
+};
+
+type TBasketEventHandlers = {
+	onClick?: (args: { _event: MouseEvent }) => void;
+};
 
 class Basket extends View<
 	HTMLElement,
@@ -18,15 +21,40 @@ class Basket extends View<
 
 	constructor(args: TViewConstructionArgs<HTMLElement, TBasketEventHandlers>) {
 		super(args);
+
+		this._itemsElement = this._element.querySelector('.basket__list');
+		this._priceElement = this._element.querySelector('.basket__price');
+		this._buttonElement = this._element.querySelector('.basket__button');
+
+		if (this._eventHandlers.onClick instanceof Function) {
+			this._buttonElement.addEventListener(
+				'click',
+				this._handleClick.bind(this)
+			);
+		}
 	}
 
-	protected _handleClick(event: MouseEvent) {}
+	protected _handleClick(event: MouseEvent) {
+		this._eventHandlers.onClick({
+			_event: event,
+		});
+	}
 
-	set price(value: string) {}
+	set items(value: TViewNested[]) {
+		this._itemsElement.replaceChildren(
+			...value.map(({ view, renderArgs }) =>
+				view instanceof View ? view.render(renderArgs) : view
+			)
+		);
+	}
 
-	set isDisabled(value: boolean) {}
+	set price(value: string) {
+		this._priceElement.textContent = String(value);
+	}
 
-	set items(value: TViewNested[]) {}
+	set isDisabled(value: boolean) {
+		this._buttonElement.disabled = Boolean(value);
+	}
 
 	render<RenderArgs extends object = object>(
 		args: TBasketRenderArgs<RenderArgs>
@@ -37,4 +65,4 @@ class Basket extends View<
 	}
 }
 
-export { Basket as BasketView };
+export { Basket as BasketView, TBasketRenderArgs, TBasketEventHandlers };

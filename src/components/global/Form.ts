@@ -1,10 +1,18 @@
-import {
-	TFormRenderArgs,
-	TFormEventHandlers,
-	TViewConstructionArgs,
-} from '../../types';
+import { TViewConstructionArgs, View } from '../base/View';
 
-import { View } from '../base/View';
+type TFormRenderArgs = {
+	isDisabled: boolean;
+	errors: string[];
+};
+
+type TFormEventHandlers = {
+	onSubmit?: (args: { _event: SubmitEvent }) => void;
+	onInput?: (args: {
+		_event: InputEvent;
+		field: string;
+		value: unknown;
+	}) => void;
+};
 
 class Form<
 	Element extends HTMLElement = HTMLFormElement,
@@ -20,15 +28,51 @@ class Form<
 
 	constructor(args: TViewConstructionArgs<Element, EventHandlers>) {
 		super(args);
+
+		this._submitButtonElement = this._element.querySelector(
+			'button[type=submit]'
+		);
+
+		this._errorsElement = this._element.querySelector('.form__errors');
+
+		if (this._eventHandlers.onSubmit instanceof Function) {
+			this._element.addEventListener('submit', this._handleSubmit.bind(this));
+		}
+
+		if (this._eventHandlers.onInput instanceof Function) {
+			this._element.addEventListener('input', this._handleInput.bind(this));
+		}
 	}
 
-	set isDisabled(value: boolean) {}
+	set isDisabled(value: boolean) {
+		this._submitButtonElement.disabled = Boolean(value);
+	}
 
-	set errors(value: string) {}
+	set errors(value: string) {
+		this._errorsElement.textContent = String(value);
+	}
 
-	protected _handleInput(event: InputEvent) {}
+	protected _handleInput(event: InputEvent) {
+		const target = event.target as HTMLInputElement;
 
-	protected _handleSubmit(event: SubmitEvent) {}
+		if (!target) {
+			return;
+		}
+
+		this._eventHandlers.onInput({
+			_event: event,
+			field: target.name,
+			value: target.value,
+		});
+	}
+
+	protected _handleSubmit(event: SubmitEvent) {
+		event.preventDefault();
+
+		this._eventHandlers.onSubmit({
+			_event: event,
+		});
+	}
 }
 
-export { Form as FormView };
+export { Form as FormView, TFormRenderArgs, TFormEventHandlers };

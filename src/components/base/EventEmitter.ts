@@ -1,6 +1,22 @@
-import { IEvents, TEmitterEvent, TEventName, TSubscriber } from '../../types';
+type TEventName = string | RegExp;
 
-export class EventEmitter implements IEvents {
+type TSubscriber = Function;
+
+type TEmitterEvent = {
+	eventName: string;
+	data: unknown;
+};
+
+interface IEvents {
+	on<T extends object>(event: TEventName, callback: (data: T) => void): void;
+	emit<T extends object>(event: string, data?: T): void;
+	trigger<T extends object>(
+		event: string,
+		context?: Partial<T>
+	): (data: T) => void;
+}
+
+class EventEmitter implements IEvents {
 	_events: Map<TEventName, Set<TSubscriber>>;
 
 	constructor() {
@@ -69,3 +85,5 @@ export class EventEmitter implements IEvents {
 		};
 	}
 }
+
+export { TEventName, TSubscriber, TEmitterEvent, IEvents, EventEmitter };

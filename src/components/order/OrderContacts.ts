@@ -1,10 +1,11 @@
-import {
-	TFormEventHandlers,
-	TOrderContactsRenderArgs,
-	TViewConstructionArgs,
-} from '../../types';
+import { TViewConstructionArgs } from '../base/View';
 
-import { FormView } from '../global/Form';
+import { FormView, TFormEventHandlers, TFormRenderArgs } from '../global/Form';
+
+type TOrderContactsRenderArgs = {
+	email: string;
+	phone: string;
+} & TFormRenderArgs;
 
 class OrderContacts extends FormView<
 	HTMLFormElement,
@@ -17,11 +18,23 @@ class OrderContacts extends FormView<
 		args: TViewConstructionArgs<HTMLFormElement, TFormEventHandlers>
 	) {
 		super(args);
+
+		this._inputEmailElement = this._element.querySelector(
+			'input[name="email"]'
+		);
+
+		this._inputPhoneElement = this._element.querySelector(
+			'input[name="phone"]'
+		);
 	}
 
-	set email(value: string) {}
+	set email(value: string) {
+		this._inputEmailElement.value = String(value);
+	}
 
-	set phone(value: string) {}
+	set phone(value: string) {
+		this._inputPhoneElement.value = String(value);
+	}
 }
 
-export { OrderContacts as OrderContactsView };
+export { OrderContacts as OrderContactsView, TOrderContactsRenderArgs };
