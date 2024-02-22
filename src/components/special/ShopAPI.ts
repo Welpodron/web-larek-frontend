@@ -1,6 +1,6 @@
 import { IProduct, TOrderInvoice, IOrderResult } from '../../types';
 
-import { API, TApiListResponse } from '../base/API';
+import { API, TApiListResponse } from '../base/api';
 
 interface IShopAPI {
 	getProducts: () => Promise<IProduct[]>;
