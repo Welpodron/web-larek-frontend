@@ -191,3 +191,18 @@ export function declOfNum(x: number, titles: [string, string, string]) {
 
 	return result;
 }
+
+export function getKeyByValueTranslation(
+	translation: string,
+	object: Record<string, string>
+): string | null {
+	const result = Object.entries(object).find(
+		([, value]) => value == translation
+	);
+
+	if (result === undefined) {
+		return null;
+	}
+
+	return result[0];
+}

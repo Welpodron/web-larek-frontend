@@ -1,12 +1,17 @@
 import './scss/styles.scss';
 
-import { CDN_URL, API_URL } from './utils/constants';
+import { CDN_URL, API_URL, settings } from './utils/constants';
 import { EventEmitter } from './components/base/EventEmitter';
 import { ShopAPI } from './components/special/ShopAPI';
 import { AppStateModelEvents, AppStateModel } from './models/global/AppState';
 import { IOrder, IProduct, TOrderStep } from './types';
 import { ProductsView } from './components/catalog/Products';
-import { cloneTemplate, ensureElement, formatPrice } from './utils/utils';
+import {
+	cloneTemplate,
+	ensureElement,
+	formatPrice,
+	getKeyByValueTranslation,
+} from './utils/utils';
 import { ProductView, TProductRenderArgs } from './components/catalog/Product';
 import { TViewNested } from './components/base/View';
 import { PageView } from './components/global/Page';
@@ -34,12 +39,6 @@ import {
 	TOrderSuccessRenderArgs,
 } from './components/order/OrderSuccess';
 
-// CONSTANTS
-const CURRENCY_TITLES: [string, string, string] = [
-	'синапс',
-	'синапса',
-	'синапсов',
-];
 // EVENTS
 const eventEmitter = new EventEmitter();
 // API
@@ -133,7 +132,7 @@ eventEmitter.on<{
 				const basketItemViewRenderArgs: TBasketItemRenderArgs = {
 					...item,
 					index: index + 1,
-					price: formatPrice(item.price, CURRENCY_TITLES),
+					price: formatPrice(item.price, settings.CURRENCY_TITLES),
 				};
 
 				return {
@@ -151,7 +150,7 @@ eventEmitter.on<{
 					price:
 						basketTotalPrice == 0
 							? ''
-							: formatPrice(basketTotalPrice, CURRENCY_TITLES),
+							: formatPrice(basketTotalPrice, settings.CURRENCY_TITLES),
 					items: basketItemsViews,
 				},
 			},
@@ -165,44 +164,41 @@ eventEmitter.on<{ data: { item: IProduct } }>(
 	({ data }) => {
 		const { item } = data;
 
-		api
-			.getProduct(item.id)
-			.then((product) => {
-				const isProductInBasket = appStateModel.getBasketIsContains(product.id);
+		const isProductInBasket = appStateModel.getBasketIsContains(item.id);
 
-				const productPreviewView = new ProductPreviewView({
-					element: cloneTemplate('#card-preview'),
-					eventEmitter,
-					eventHandlers: {
-						onClick: () => {
-							if (isProductInBasket) {
-								appStateModel.removeBasketItem(product.id);
-							} else {
-								if (product.price) {
-									appStateModel.addBasketItem(product);
-								}
-							}
-						},
-					},
-				});
+		const productPreviewView = new ProductPreviewView({
+			element: cloneTemplate('#card-preview'),
+			eventEmitter,
+			eventHandlers: {
+				onClick: () => {
+					if (isProductInBasket) {
+						appStateModel.removeBasketItem(item.id);
+					} else {
+						if (item.price) {
+							appStateModel.addBasketItem(item);
+						}
+					}
+				},
+			},
+		});
 
-				const productPreviewViewRenderArgs: TProductPreviewRenderArgs = {
-					...product,
-					isDisabled: !product.price,
-					price: formatPrice(product.price, CURRENCY_TITLES),
-					buttonText: isProductInBasket ? 'Удалить из корзины' : 'Купить',
-				};
+		const productPreviewViewRenderArgs: TProductPreviewRenderArgs = {
+			...item,
+			color: getKeyByValueTranslation(
+				item.category.toLowerCase(),
+				settings.CATEGORY_COLORS_TITLES
+			),
+			isDisabled: !item.price,
+			price: formatPrice(item.price, settings.CURRENCY_TITLES),
+			buttonText: isProductInBasket ? 'Удалить из корзины' : 'Купить',
+		};
 
-				modalView.render<TProductPreviewRenderArgs>({
-					content: {
-						view: productPreviewView,
-						renderArgs: productPreviewViewRenderArgs,
-					},
-				});
-			})
-			.catch((error) => {
-				console.error(error);
-			});
+		modalView.render<TProductPreviewRenderArgs>({
+			content: {
+				view: productPreviewView,
+				renderArgs: productPreviewViewRenderArgs,
+			},
+		});
 	}
 );
 
@@ -225,7 +221,11 @@ eventEmitter.on<{ data: { items: IProduct[] } }>(
 
 			const productsViewRenderArgs: TProductRenderArgs = {
 				...item,
-				price: formatPrice(item.price, CURRENCY_TITLES),
+				color: getKeyByValueTranslation(
+					item.category.toLowerCase(),
+					settings.CATEGORY_COLORS_TITLES
+				),
+				price: formatPrice(item.price, settings.CURRENCY_TITLES),
 			};
 
 			return {
@@ -309,7 +309,7 @@ eventEmitter.on<{ data: { step: TOrderStep } }>(
 										renderArgs: {
 											description: `Списано ${formatPrice(
 												data.total,
-												CURRENCY_TITLES
+												settings.CURRENCY_TITLES
 											)}`,
 										},
 									},

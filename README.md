@@ -518,12 +518,10 @@ type TProductsRenderArgs<T extends object> = {
 Наследуется от `View`. При рендеринге по умолчанию использует поля типа `TProductRenderArgs`:
 
 ```ts
-type TProductRenderArgs = Pick<
-	IProduct,
-	'image' | 'title' | 'category'
-> & {
+type TProductRenderArgs = Pick<IProduct, 'image' | 'title' | 'category'> & {
 	price: string;
-}
+	color: string | null;
+};
 ```
 
 Доступный список событий по умолчанию описан типом `TProductEventHandlers`:
